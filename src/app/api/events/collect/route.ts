@@ -1,10 +1,10 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { GameEvent, GameEventSchema } from "@/types/gameEvent";
 import { formatZodError } from "@/lib/zod";
 import { ZodError } from "zod";
 import { addToGameEventProcessorQueue } from "@/lib/bullmq/jobs/gameEventProcessor";
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const events: GameEvent[] = body.events;

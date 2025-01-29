@@ -1,12 +1,12 @@
 import { redisConnection } from "@/lib/redis";
-import { Queue, Worker } from "bullmq";
+import { Job, Queue, Worker } from "bullmq";
 import { defaultQueueConfig } from "../config";
 import { GameEvent } from "@/types/gameEvent";
 import { prisma } from "@/lib/prisma/prisma";
 
 const queueName = "gameEventProcessor";
 
-const processOrderQueue = new Queue(queueName, {
+export const processOrderQueue = new Queue(queueName, {
   connection: redisConnection,
   defaultJobOptions: {
     ...defaultQueueConfig,
@@ -14,19 +14,12 @@ const processOrderQueue = new Queue(queueName, {
   },
 });
 
-new Worker(
+export const worker = new Worker(
   queueName,
   async (job) => {
     const events: GameEvent[] = job.data;
-    console.log("job", events);
-    try {
-      await prisma.$transaction(async (tx: any) => {
-        await tx.gameEvent.createMany({ data: events });
-      });
-    } catch (error) {
-      console.error("Error processing events:", error);
-      return false;
-    }
+
+    await processGameEvents(events);
 
     console.log("Processed events:", events);
   },
@@ -34,6 +27,22 @@ new Worker(
     connection: redisConnection,
   }
 );
+
+worker.on("failed", (job: Job | undefined, error: Error) => {
+  console.error(
+    `Job ${job?.id} failed permanently after ${job?.attemptsMade} attempts:`,
+    error.message
+  );
+});
+
+export async function processGameEvents(events: GameEvent[]) {
+  try {
+    await prisma.gameEvent.createMany({ data: events, skipDuplicates: true });
+  } catch (error) {
+    console.error("Error processing events:", error);
+    throw error;
+  }
+}
 
 export const addToGameEventProcessorQueue = (data: GameEvent[]) => {
   return processOrderQueue.add(queueName, data);
