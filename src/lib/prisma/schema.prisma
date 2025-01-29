@@ -1,0 +1,33 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource play-db-1 {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model GameEvent {
+  id          Int       @id @default(autoincrement())
+  createdAt   DateTime  @default(now())
+  eventType   String
+  playerId    String
+  sessionId   String?
+  gameId      String
+  serverId    String?
+  
+  // Event specific data
+  matchId     String?
+  score       Int?
+  position    Json?     // {x: number, y: number, z: number}
+  itemId      String?
+  achievement String?
+  metadata    Json?     // For any additional event-specific data
+  
+  @@index([playerId])
+  @@index([sessionId])
+  @@index([eventType])
+  @@index([createdAt])
+}
+
+

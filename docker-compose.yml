@@ -12,8 +12,8 @@ services:
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/play
       - REDIS_URL=redis://redis:6379
     depends_on:
-      - db
-      - redis
+      migration:
+          condition: service_completed_successfully
 
   db:
     image: postgres:15-alpine
@@ -25,6 +25,20 @@ services:
       - POSTGRES_DB=play
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5      
+
+  migration:
+    build: .
+    command: sh -c "npx prisma migrate deploy"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
 
   redis:
     image: redis:7-alpine
