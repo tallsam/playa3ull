@@ -33,7 +33,7 @@ services:
 
   migration:
     build: .
-    command: sh -c "npx prisma migrate deploy"
+    command: sh -c "npx prisma migrate dev"
     depends_on:
       db:
         condition: service_healthy
